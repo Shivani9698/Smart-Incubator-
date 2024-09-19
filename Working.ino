@@ -19,8 +19,8 @@
 #define ONE_WIRE_BUS 4
 #define RELAY_PIN 25
 
-const int steps_per_rev = 500;
-int a = 5000;  // Microseconds delay between steps
+const int steps_per_rev = 500000;
+int a = 50000;  // Microseconds delay between steps
 
 // Task Handles
 TaskHandle_t StepperMotorTaskHandle = NULL;
