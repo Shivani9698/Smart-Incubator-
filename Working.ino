@@ -29,7 +29,7 @@ TaskHandle_t TempControlTaskHandle = NULL;
 TaskHandle_t ApiTaskHandle = NULL;
 
 // PID variables
-double Setpoint = 37.5;  // Desired temperature for incubation
+double Setpoint = 37.4;  // Desired temperature for incubation
 double Input, Output;    // PID Input and Output
 double Kp = 2, Ki = 5, Kd = 1;
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);  // PID Controller
@@ -152,7 +152,7 @@ void StepperMotorTask(void *pvParameters) {
 
 // Temperature Control Task
 void TempControlTask(void *pvParameters) {
-    double hysteresis = 0.2; // Hysteresis buffer
+    double hysteresis = 0.1; // Hysteresis buffer
     while (true) {
         sensors.requestTemperatures();
 
