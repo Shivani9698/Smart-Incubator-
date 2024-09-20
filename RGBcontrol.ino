@@ -19,10 +19,10 @@
 #define DOOR_RELAY_PIN 32
 #define ONE_WIRE_BUS 4
 #define RELAY_PIN 25
-#define LED_PIN 33  // Pin for the addressable LED
+#define LED_PIN 15 // Pin for the addressable LED
 
 // LED setup
-#define NUM_LEDS 1  // Number of LEDs (1 in this case)
+#define NUM_LEDS 52  // Number of LEDs (55 in this case)
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 const int steps_per_rev = 500000;
@@ -68,6 +68,7 @@ String getFormattedTime();
 void addToTempBuffer(double newTemp);
 double getAverageTemp();
 void setLEDColor(uint8_t r, uint8_t g, uint8_t b);
+void blinkLEDs();
 
 // Helper function to monitor heap memory
 void monitorHeap() {
@@ -134,7 +135,7 @@ void setup() {
 
     // Create FreeRTOS tasks with sufficient stack sizes
     xTaskCreatePinnedToCore(StepperMotorTask, "StepperMotorTask", 4096, NULL, 1, &StepperMotorTaskHandle, 0);  // Core 0
-    xTaskCreatePinnedToCore(TempControlTask, "TempControlTask", 4096, NULL, 1, &TempControlTaskHandle, 1);   // Core 1
+    xTaskCreatePinnedToCore(TempControlTask, "TempControlTask", 8192, NULL, 1, &TempControlTaskHandle, 1);   // Core 1
     xTaskCreatePinnedToCore(ApiTask, "ApiTask", 8192, NULL, 2, &ApiTaskHandle, 1);     
     xTaskCreatePinnedToCore(DoorSensorTask, "DoorSensorTask", 4096, NULL, 3, &DoorSensorTaskHandle, 0);  // Core 0, Priority 3
 }
@@ -176,6 +177,7 @@ void StepperMotorTask(void *pvParameters) {
 }
 
 // Temperature Control Task
+// Temperature Control Task
 void TempControlTask(void *pvParameters) {
     double hysteresis = 0.1;  // Hysteresis buffer
     while (true) {
@@ -216,13 +218,10 @@ void TempControlTask(void *pvParameters) {
             // Control LED color based on temperature range
             if (averageTemp < 37.0) {
                 setLEDColor(0, 0, 255);  // Blue for temp < 37°C
-                Serial.println("LED: Blue (Temperature below 37°C)");
             } else if (averageTemp >= 37.0 && averageTemp <= 37.5) {
                 setLEDColor(0, 255, 0);  // Green for temp between 37°C and 37.5°C
-                Serial.println("LED: Green (Temperature between 37°C and 37.5°C)");
             } else {
                 setLEDColor(255, 0, 0);  // Red for temp > 37.5°C
-                Serial.println("LED: Red (Temperature above 37.5°C)");
             }
         } else {
             Serial.println("No valid sensor readings. Skipping this cycle.");
@@ -330,10 +329,22 @@ double getAverageTemp() {
     return tempTotal / bufferSize;
 }
 
-// Helper function to set the LED color
+// Helper function to set the LED color for all 55 LEDs
 void setLEDColor(uint8_t r, uint8_t g, uint8_t b) {
-    strip.setPixelColor(0, strip.Color(r, g, b));  // Set color for the first LED
-    strip.show();  // Apply the color
+    for (int i = 0; i < NUM_LEDS; i++) {
+        strip.setPixelColor(i, strip.Color(r, g, b));  // Set color for each LED
+    }
+    strip.show();  // Apply the color to all LEDs
+}
+
+// Helper function to blink all 55 LEDs
+void blinkLEDs() {
+    // Turn off LEDs
+    setLEDColor(0, 0, 0);
+    vTaskDelay(pdMS_TO_TICKS(500));  // Wait for 500ms
+
+    // Turn on LEDs again with the current color
+    vTaskDelay(pdMS_TO_TICKS(500));  // Wait for 500ms
 }
 
 // Helper function to get formatted time in ISO 8601 format (YYYY-MM-DDTHH:MM:SS)
