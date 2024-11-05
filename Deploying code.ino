@@ -17,8 +17,8 @@
 #include <freertos/semphr.h>
 
 // Pin assignments for temperature, relay, door, stepper motor, LED
-#define ONE_WIRE_BUS 18
-#define RELAY_PIN 25
+#define ONE_WIRE_BUS 4
+#define RELAY_PIN 14
 #define doorSensorPin 25
 #define doorRelayPin 27
 #define DIR 2
@@ -109,7 +109,7 @@ void setup() {
   Serial.println("Nextion display initialized");
 
   // Initialize mutex for Nextion communication
-  nextionMutex = xSemaphoreCreateMutex();
+  nextionMutex = xSemaphoreCreateMutex();  
 
   // Create FreeRTOS tasks with sufficient stack size
   xTaskCreate(TemperatureTask, "Temperature Control", 15000, NULL, 4, NULL);
@@ -117,7 +117,7 @@ void setup() {
   xTaskCreate(DoorTask, "Door Control", 10000, NULL, 0, NULL);
   xTaskCreate(StepperTask, "Stepper Control", 12000, NULL, 2, NULL);
   xTaskCreate(HumidityTask, "Humidity Task", 12000, NULL, 3, NULL);
-
+  
   // Monitor heap space initially
   Serial.printf("Initial free heap: %d bytes\n", esp_get_free_heap_size());
 }
@@ -170,10 +170,10 @@ void DoorTask(void *pvParameters) {
     int doorState = digitalRead(doorSensorPin);
     if (doorState == LOW) {
       digitalWrite(doorRelayPin, HIGH); // Door open, activate relay
-      Serial.println("Door open: Relay ON");
+      Serial.println("Door closed: Relay OFF");
     } else {
       digitalWrite(doorRelayPin, LOW);  // Door closed, deactivate relay
-      Serial.println("Door closed: Relay OFF");
+      Serial.println("Door open: Relay ON");
     }
 
     vTaskDelay(pdMS_TO_TICKS(2000));  // Check every 2 seconds
@@ -222,22 +222,21 @@ void HumidityTask(void *pvParameters) {
       xSemaphoreGive(nextionMutex);
     }
 
-    vTaskDelay(pdMS_TO_TICKS(1000));  // Run every 1 second
+    vTaskDelay(pdMS_TO_TICKS(3000));  // Run every 1 second
   }
 }
 
 // Function to update LED color based on temperature
 void updateLEDColor(double temperature) {
-  int color = strip.Color(30, 0, 0);  // Default to red
-
-  if (temperature < 20) {
-    color = strip.Color(0, 0, 30); // Cold (blue)
-  } else if (temperature < 30) {
-    color = strip.Color(0, 30, 0); // Warm (green)
-  }
-
-  for (int i = 0; i < NUM_PIXELS; i++) {
-    strip.setPixelColor(i, color);
+  if (temperature >= 36.0 && temperature < 36.5) {
+    // Blue LED
+    strip.setPixelColor(0, strip.Color(0, 0, 25)); // RGB: Blue
+  } else if (temperature >= 36.5 && temperature <= 37.0) {
+    // Green LED
+    strip.setPixelColor(0, strip.Color(0, 25, 0)); // RGB: Green
+  } else if (temperature > 37.0) {
+    // Red LED
+    strip.setPixelColor(0, strip.Color(25, 0, 0)); // RGB: Red
   }
   strip.show(); // Update the strip
 }
